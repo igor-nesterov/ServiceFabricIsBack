@@ -1,56 +1,32 @@
 <div align="center">
 
-<br/>
+### 🛡️ Status
 
-```
-                            .       .
-                           / `.   .' \
-                   .---.  <    > <    >  .---.
-                   |    \  \ - ~ ~ - /  /    |
-                    ~-..-~             ~-..-~
-                \~~~\.'                    `./~~~/
-      @))>-------\__/                        \__/-------<((@
-                 /  \                        /  \
-                /-., \                      / ,.-\
-               /      '.                  .'      \
-              /   _     `'~-.______.-~'`     _     \
-             |  .' '>     ╔═══════════════╗    <'. |
-             | /    |     ║   .sfproj     ║    |    \ |
-              \     |     ║   RESTORED    ║    |     /
-               `\   |     ╚═══════════════╝    |  /'
-                 `\ |                          |/'
-                   `|       Service Fabric     |`
-                     \      Project Support   /
-                      `\                    /'
-                        `\              /'
-                           `-.._____..-'
+```text
+╔══════════════════════════════════════════════════════════════╗
+║               __                                             ║
+║              / _)                                            ║
+║       .-^^^-/ /                                              ║
+║    __/       /                                               ║
+║   <__.|_|-|_|                                                ║
+║                                                              ║
+║   rawr - your sfproj files are safe now                      ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
-<br/>
+**Built with 💜 for everyone still running Service Fabric in production**
+
+*Because not everything needs to be migrated to Kubernetes 😄*
 
 # 🦕 ServiceFabricBack
 
-**Bringing `.sfproj` support to Visual Studio 2026**
+### *Bringing `.sfproj` back from extinction in Visual Studio 2026*
 
-<br/>
-
-[![Visual Studio 2026](https://img.shields.io/badge/Visual%20Studio-2026%20(v18)-7c3aed?style=for-the-badge&logo=visualstudio&logoColor=white)](https://visualstudio.microsoft.com/)
-&nbsp;
-[![Service Fabric](https://img.shields.io/badge/Service%20Fabric-.sfproj-0078d4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://learn.microsoft.com/azure/service-fabric/)
-&nbsp;
-[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE.txt)
-
-<br/>
-
-[**Getting Started**](#-getting-started) · [**Installation**](#-installation) · [**How it Works**](#-how-it-works) · [**Contributing**](#-contributing)
-
-<br/>
-
----
+[![VS 2026](https://img.shields.io/badge/Visual%20Studio-2026-purple?style=for-the-badge&logo=visualstudio)](https://visualstudio.microsoft.com/)
+[![Service Fabric](https://img.shields.io/badge/Service%20Fabric-.sfproj-blue?style=for-the-badge)](https://learn.microsoft.com/azure/service-fabric/)
+[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE.txt)
 
 </div>
-
-<br/>
 
 ## 🦖 About
 
