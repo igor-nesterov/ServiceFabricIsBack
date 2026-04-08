@@ -92,7 +92,15 @@ This extension adds `.sfproj` support back.
 
 ## 📦 Installation
 
-### Option 1 — Build & install from Visual Studio (easiest)
+### Option 1 — Download from GitHub Releases (quickest)
+
+1. Go to the [**Releases**](../../releases) page
+2. Download **`ServiceFabricBack.vsix`** from the latest release
+3. **Double-click** the `.vsix` file to install
+4. **Restart Visual Studio**
+5. Open your Service Fabric solution — all `.sfproj` projects should load ✅
+
+### Option 2 — Build & install from Visual Studio
 
 This is the simplest way if you already have VS 2026 open:
 
@@ -108,7 +116,7 @@ This is the simplest way if you already have VS 2026 open:
 7. **Restart Visual Studio**
 8. Open your Service Fabric solution — all `.sfproj` projects should load ✅
 
-### Option 2 — Build from command line
+### Option 3 — Build from command line
 
 ```powershell
 # Clone
@@ -123,8 +131,8 @@ cd ServiceFabricBack
 Start-Process "ServiceFabricBack\bin\Release\ServiceFabricBack.vsix"
 ```
 
-> [!IMPORTANT]
-> **There are no pre-built releases on GitHub yet.** You must build the VSIX from source using one of the options above. Once the extension matures, pre-built releases will be published to the [Releases](../../releases) page and potentially to the [Visual Studio Marketplace](https://marketplace.visualstudio.com/).
+> [!TIP]
+> Pre-built VSIX binaries are available on the [Releases](../../releases) page. If you prefer to build from source, use Option 2 or 3 above.
 
 ### Verifying installation
 
