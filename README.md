@@ -55,6 +55,11 @@ This extension adds `.sfproj` support back.
 
 </div>
 
+```diff
+- Disclaimer: This project is NOT affiliated with, endorsed by, or associated with Microsoft
+- in any way. It is an independent, community-driven extension. Also, it was fully vibecoded by Copilot 🤖✨
+```
+
 <br/>
 
 ## ✨ Features
@@ -239,12 +244,3 @@ PRs and issues are welcome! Here's what could use help:
 ## 📜 License
 
 [MIT](LICENSE.txt) — use it however you want.
-
-<br/>
-
----
-
-```diff
-- Disclaimer: This project is NOT affiliated with, endorsed by, or associated with Microsoft
-- in any way. It is an independent, community-driven extension. Also, it was fully vibecoded by Copilot 🤖✨
-```
