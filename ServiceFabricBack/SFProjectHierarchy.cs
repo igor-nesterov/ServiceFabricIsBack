@@ -477,11 +477,98 @@ namespace ServiceFabricBack
 
         public int QueryStatusCommand(uint itemid, ref Guid pguidCmdGroup, uint cCmds,
             OLECMD[] prgCmds, IntPtr pCmdText)
-            => (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+        {
+            if (prgCmds == null || cCmds == 0)
+                return VSConstants.E_INVALIDARG;
+
+            // Standard command group — handle Open, DoubleClick, ViewCode
+            if (pguidCmdGroup == VSConstants.GUID_VSStandardCommandSet97)
+            {
+                for (int i = 0; i < cCmds; i++)
+                {
+                    switch (prgCmds[i].cmdID)
+                    {
+                        case (uint)VSConstants.VSStd97CmdID.Open:
+                        case (uint)VSConstants.VSStd97CmdID.OpenWith:
+                        case (uint)VSConstants.VSStd97CmdID.ViewCode:
+                        case (uint)VSConstants.VSStd97CmdID.ViewForm:
+                            var node97 = FindNode(itemid);
+                            if (itemid == VSItemIdRoot || (node97 != null && !node97.IsFolder))
+                            {
+                                prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+                                return VSConstants.S_OK;
+                            }
+                            break;
+                    }
+                }
+            }
+            else if (pguidCmdGroup == VSConstants.VSStd2K)
+            {
+                for (int i = 0; i < cCmds; i++)
+                {
+                    switch (prgCmds[i].cmdID)
+                    {
+                        case (uint)VSConstants.VSStd2KCmdID.DOUBLECLICK:
+                        case (uint)VSConstants.VSStd2KCmdID.OPENFILE:
+                            var node2k = FindNode(itemid);
+                            if (itemid == VSItemIdRoot || (node2k != null && !node2k.IsFolder))
+                            {
+                                prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+                                return VSConstants.S_OK;
+                            }
+                            break;
+
+                        case (uint)VSConstants.VSStd2KCmdID.EXPANDSELECTION:
+                            var nodeExp = FindNode(itemid);
+                            if (itemid == VSItemIdRoot || (nodeExp != null && nodeExp.IsFolder))
+                            {
+                                prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+                                return VSConstants.S_OK;
+                            }
+                            break;
+                    }
+                }
+            }
+
+            return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+        }
 
         public int ExecCommand(uint itemid, ref Guid pguidCmdGroup, uint nCmdID,
             uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
-            => (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+        {
+            // Handle Open / DoubleClick
+            if (pguidCmdGroup == VSConstants.GUID_VSStandardCommandSet97)
+            {
+                switch (nCmdID)
+                {
+                    case (uint)VSConstants.VSStd97CmdID.Open:
+                    case (uint)VSConstants.VSStd97CmdID.OpenWith:
+                    case (uint)VSConstants.VSStd97CmdID.ViewCode:
+                    case (uint)VSConstants.VSStd97CmdID.ViewForm:
+                        Guid logView = VSConstants.LOGVIEWID_Primary;
+                        IVsWindowFrame frame;
+                        return OpenItem(itemid, ref logView, IntPtr.Zero, out frame);
+                }
+            }
+            else if (pguidCmdGroup == VSConstants.VSStd2K)
+            {
+                switch (nCmdID)
+                {
+                    case (uint)VSConstants.VSStd2KCmdID.DOUBLECLICK:
+                    case (uint)VSConstants.VSStd2KCmdID.OPENFILE:
+                        // For folders, toggle expand — for files, open
+                        var node = FindNode(itemid);
+                        if (node != null && node.IsFolder)
+                            return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+
+                        Guid logView2k = VSConstants.LOGVIEWID_Primary;
+                        IVsWindowFrame frame2k;
+                        return OpenItem(itemid, ref logView2k, IntPtr.Zero, out frame2k);
+                }
+            }
+
+            return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+        }
 
         #endregion
 
@@ -535,32 +622,31 @@ namespace ServiceFabricBack
             if (!File.Exists(filePath))
                 return VSConstants.E_FAIL;
 
-            var sp = new ServiceProvider(oleServiceProvider);
-            var openDoc = sp.GetService(typeof(SVsUIShellOpenDocument)) as IVsUIShellOpenDocument;
-            if (openDoc == null) return VSConstants.E_FAIL;
-
-            var logicalView = rguidLogicalView;
-            Guid editorType = Guid.Empty;
-            string physicalView = null;
-            Microsoft.VisualStudio.OLE.Interop.IServiceProvider ppSP;
-            IVsWindowFrame ppFrame;
-
-            int hr = openDoc.OpenStandardEditor(
-                (uint)__VSOSEFLAGS.OSE_ChooseBestStdEditor,
-                filePath,
-                ref logicalView,
-                Path.GetFileName(filePath),
-                this,
-                itemid,
-                punkDocDataExisting,
-                oleServiceProvider,
-                out ppFrame);
-
-            if (ErrorHandler.Succeeded(hr) && ppFrame != null)
+            try
             {
-                ppWindowFrame = ppFrame;
-                ppFrame.Show();
-                return VSConstants.S_OK;
+                VsShellUtilities.OpenDocument(
+                    package,
+                    filePath,
+                    rguidLogicalView,
+                    out _,        // hierarchy
+                    out _,        // itemid
+                    out ppWindowFrame);
+
+                if (ppWindowFrame != null)
+                {
+                    ppWindowFrame.Show();
+                    return VSConstants.S_OK;
+                }
+            }
+            catch
+            {
+                // Fall back to ShellExecute if VS editor fails
+                try
+                {
+                    System.Diagnostics.Process.Start(filePath);
+                    return VSConstants.S_OK;
+                }
+                catch { }
             }
 
             return VSConstants.E_FAIL;

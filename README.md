@@ -1,167 +1,277 @@
 <div align="center">
 
+<br/>
+
 ```
-                                     ___
-                                   /     \
-                                  | () () |
-                                   \ ⌣  /
-                              _____|_____|_____
-                             /                  \
-                            /   ╔══════════════╗  \
-                           |    ║  .sfproj     ║   |
-                           |    ║   SUPPORT    ║   |
-                    ╭──╮   |    ╚══════════════╝   |   ╭──╮
-                    │SF│  /\                       /\   │SF│
-                    ╰──╯ /  \_____________________/  \  ╰──╯
-                        /  /  |   |       |   |  \   \
-                       /  /   |   |       |   |   \   \
-                      (__/    |___|       |___|    \__)
-                              =====       =====
+                            .       .
+                           / `.   .' \
+                   .---.  <    > <    >  .---.
+                   |    \  \ - ~ ~ - /  /    |
+                    ~-..-~             ~-..-~
+                \~~~\.'                    `./~~~/
+      @))>-------\__/                        \__/-------<((@
+                 /  \                        /  \
+                /-., \                      / ,.-\
+               /      '.                  .'      \
+              /   _     `'~-.______.-~'`     _     \
+             |  .' '>     ╔═══════════════╗    <'. |
+             | /    |     ║   .sfproj     ║    |    \ |
+              \     |     ║   RESTORED    ║    |     /
+               `\   |     ╚═══════════════╝    |  /'
+                 `\ |                          |/'
+                   `|       Service Fabric     |`
+                     \      Project Support   /
+                      `\                    /'
+                        `\              /'
+                           `-.._____..-'
 ```
+
+<br/>
 
 # 🦕 ServiceFabricBack
 
-### *Bringing `.sfproj` back from extinction in Visual Studio 2026*
+**Bringing `.sfproj` support to Visual Studio 2026**
 
-[![VS 2026](https://img.shields.io/badge/Visual%20Studio-2026-purple?style=for-the-badge&logo=visualstudio)](https://visualstudio.microsoft.com/)
-[![Service Fabric](https://img.shields.io/badge/Service%20Fabric-.sfproj-blue?style=for-the-badge)](https://learn.microsoft.com/azure/service-fabric/)
-[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE.txt)
+<br/>
+
+[![Visual Studio 2026](https://img.shields.io/badge/Visual%20Studio-2026%20(v18)-7c3aed?style=for-the-badge&logo=visualstudio&logoColor=white)](https://visualstudio.microsoft.com/)
+&nbsp;
+[![Service Fabric](https://img.shields.io/badge/Service%20Fabric-.sfproj-0078d4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://learn.microsoft.com/azure/service-fabric/)
+&nbsp;
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE.txt)
+
+<br/>
+
+[**Getting Started**](#-getting-started) · [**Installation**](#-installation) · [**How it Works**](#-how-it-works) · [**Contributing**](#-contributing)
+
+<br/>
+
+---
 
 </div>
 
----
+<br/>
 
-## 🦖 What is this?
+## 🦖 About
 
-Microsoft removed built-in support for **Service Fabric Application projects (`.sfproj`)** in Visual Studio 2026. If you have existing Service Fabric solutions, they show up as **"(incompatible)"** and refuse to load.
+Visual Studio 2026 does not include built-in support for **Service Fabric Application projects (`.sfproj`)**. If you have existing Service Fabric solutions, sfproj projects may show up as ***"(incompatible)"*** and won't load:
 
-This extension **brings `.sfproj` support back** — like a paleontologist recovering a dinosaur from the fossil record.
+```diff
+-  ❌  PublishingApplication (incompatible)
+-  ❌  RoutingApplication (incompatible)
+-  ❌  CachingApplication (incompatible)
+```
 
-### What it does
+This extension adds `.sfproj` support back.
 
-- ✅ **Loads `.sfproj` projects** in Solution Explorer (no more "incompatible")
-- ✅ **Displays the full project tree** — ApplicationPackageRoot, ApplicationParameters, PublishProfiles, Scripts, etc.
-- ✅ **Opens files** — double-click any file to edit with the appropriate VS editor
-- ✅ **Custom modern icons** — a clean microservices mesh icon for the project node, plus type-specific file icons
-- ✅ **Project references** — shows referenced service projects
-- ✅ **Includes a project template** for creating new SF Application projects
-- ✅ **MSBuild targets** — basic build/package support for the SF application packaging workflow
+```diff
++  ✅  PublishingApplication
++  ✅  RoutingApplication
++  ✅  CachingApplication
+```
 
-### What it does NOT do (yet)
+> [!NOTE]
+> For background on the SF project system, see [microsoft/service-fabric#885](https://github.com/microsoft/service-fabric/issues/885). This extension fills the gap by implementing the project system interfaces directly.
 
-- ❌ SF SDK deployment integration (use PowerShell scripts or CI/CD pipelines)
-- ❌ Service Fabric cluster management UI
-- ❌ Add/remove service dialogs
+<br/>
 
----
+<div align="center">
+
+<img src="docs/images/screenshot.png" alt="Service Fabric project loaded in Solution Explorer" width="340"/>
+
+*`.sfproj` project loaded in Visual Studio 2026 with full file tree and custom icons*
+
+</div>
+
+<br/>
+
+## ✨ Features
+
+| Feature | Status |
+|:--------|:------:|
+| Load `.sfproj` projects in Solution Explorer | ✅ |
+| Full project tree — ApplicationPackageRoot, ApplicationParameters, PublishProfiles, Scripts | ✅ |
+| Double-click to open files in the appropriate VS editor | ✅ |
+| Custom modern icons (microservices mesh, type-specific file icons) | ✅ |
+| Project references display | ✅ |
+| New project template for SF Applications | ✅ |
+| MSBuild targets for build/package workflow | ✅ |
+| SF SDK deployment integration | 🔜 |
+| Service Fabric cluster management UI | 🔜 |
+| Add/remove service dialogs | 🔜 |
+
+<br/>
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Visual Studio 2026** (version 18.x)
+- The **"Visual Studio extension development"** workload — needed only if building from source
+
+> [!TIP]
+> You can add the workload via **Visual Studio Installer → Modify → Other Toolsets → Visual Studio extension development**.
+
+<br/>
 
 ## 📦 Installation
 
-### Option 1: Build from source (recommended)
+### Option 1 — Build & install from Visual Studio (easiest)
 
-> **Prerequisites:** Visual Studio 2026 with the *Visual Studio extension development* workload installed.
+This is the simplest way if you already have VS 2026 open:
+
+1. **Clone or download** this repository
+2. **Open** `ServiceFabricBack.sln` in Visual Studio 2026
+3. Make sure the **"Visual Studio extension development"** workload is installed
+4. Set configuration to **Debug** and press **`Ctrl+Shift+B`** to build
+5. The VSIX is generated at:
+   ```
+   ServiceFabricBack\bin\Debug\ServiceFabricBack.vsix
+   ```
+6. **Double-click** the `.vsix` file to install
+7. **Restart Visual Studio**
+8. Open your Service Fabric solution — all `.sfproj` projects should load ✅
+
+### Option 2 — Build from command line
 
 ```powershell
-# 1. Clone the repo
-git clone https://github.com/your-username/ServiceFabricBack.git
+# Clone
+git clone https://github.com/igor-nesterov/ServiceFabricIsBack.git
 cd ServiceFabricBack
 
-# 2. Build the VSIX
+# Build (adjust the VS edition path if needed: Community/Professional/Enterprise)
 & "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\MSBuild.exe" `
-    ServiceFabricBack\ServiceFabricBack.csproj /t:Build /p:Configuration=Debug
+    ServiceFabricBack\ServiceFabricBack.csproj /t:Build /p:Configuration=Release
 
-# 3. Install the extension
-# The VSIX is at: ServiceFabricBack\bin\Debug\ServiceFabricBack.vsix
-# Double-click it, or run:
-Start-Process "ServiceFabricBack\bin\Debug\ServiceFabricBack.vsix"
+# Install — double-click or run:
+Start-Process "ServiceFabricBack\bin\Release\ServiceFabricBack.vsix"
 ```
 
-4. **Restart Visual Studio** after installation
-5. Open your Service Fabric solution — `.sfproj` projects should load normally
-
-### Option 2: Install pre-built VSIX
-
-1. Grab the latest `ServiceFabricBack.vsix` from the [Releases](../../releases) page
-2. Double-click the `.vsix` file
-3. Follow the installer prompts
-4. Restart Visual Studio
+> [!IMPORTANT]
+> **There are no pre-built releases on GitHub yet.** You must build the VSIX from source using one of the options above. Once the extension matures, pre-built releases will be published to the [Releases](../../releases) page and potentially to the [Visual Studio Marketplace](https://marketplace.visualstudio.com/).
 
 ### Verifying installation
 
-Go to **Extensions → Manage Extensions** and look for:
+After restart, go to **Extensions → Manage Extensions** and confirm you see:
 
-> **Service Fabric Project Support** — *Igor Nesterov*
+> **Service Fabric Project Support** `1.0` — *Igor Nesterov*
 
----
+<br/>
 
-## 🏗️ How it works
+## 🏗️ How it Works
 
-Since Microsoft never created a modern CPS-based project system for `.sfproj` (see [microsoft/service-fabric#885](https://github.com/microsoft/service-fabric/issues/885)), this extension implements the VS project system interfaces directly:
+Since `.sfproj` doesn't have a built-in project system in VS 2026, this extension implements the VS extensibility interfaces directly:
 
 ```
-┌─────────────────────┐
-│  SFProjectFactory   │  ← Registered for GUID {A07B5EB6-...}
-│  (IVsProjectFactory)│     which is the well-known SF project type
-└──────────┬──────────┘
-           │ creates
-           ▼
-┌─────────────────────┐
-│ SFProjectHierarchy  │  ← Parses .sfproj XML, builds file tree
-│ (IVsHierarchy,      │     for Solution Explorer display
-│  IVsProject,        │
-│  IVsUIHierarchy)    │
-└─────────────────────┘
+                    ┌────────────────────────────────┐
+                    │     Visual Studio 2026          │
+                    │                                │
+                    │  .sln references project with   │
+                    │  GUID {A07B5EB6-E848-...}      │
+                    └───────────────┬────────────────┘
+                                    │
+                                    ▼
+                    ┌────────────────────────────────┐
+                    │     SFProjectFactory            │
+                    │     (IVsProjectFactory)         │
+                    │                                │
+                    │  Registered for the well-known  │
+                    │  SF project type GUID           │
+                    └───────────────┬────────────────┘
+                                    │ creates
+                                    ▼
+┌──────────────┐    ┌────────────────────────────────┐
+│              │    │     SFProjectHierarchy          │
+│   SFIcons    │───▶│     (IVsHierarchy,             │
+│  (GDI+ art)  │    │      IVsProject,               │
+│              │    │      IVsUIHierarchy)            │
+└──────────────┘    │                                │
+                    │  • Parses .sfproj MSBuild XML   │
+                    │  • Builds file/folder tree      │
+                    │  • Opens files via standard     │
+                    │    VS editor infrastructure     │
+                    └────────────────────────────────┘
 ```
 
-- **`SFProjectFactory`** — Implements `IVsProjectFactory`, registered under the SF project type GUID `{A07B5EB6-E848-4116-A8D0-A826331D98C6}`. When VS encounters this GUID in a `.sln` file, it delegates to our factory.
-- **`SFProjectHierarchy`** — Parses the `.sfproj` MSBuild XML to extract file items (`None`, `Content`, `ProjectReference`) and builds a proper hierarchy for Solution Explorer. Handles file opening via `IVsUIShellOpenDocument.OpenStandardEditor`.
-- **`SFIcons`** — Generates all icons programmatically using GDI+ — a microservices mesh for the project, type-specific file icons, and folder icons.
+| Component | Role |
+|:----------|:-----|
+| **`ServiceFabricBackPackage`** | VS Package entry point — registers the factory on load |
+| **`SFProjectFactory`** | `IVsProjectFactory` registered under GUID `{A07B5EB6-E848-4116-A8D0-A826331D98C6}` |
+| **`SFProjectHierarchy`** | Parses `.sfproj` XML, extracts `None`/`Content`/`ProjectReference` items, builds Solution Explorer tree |
+| **`SFIcons`** | Generates all icons programmatically — microservices mesh, colored file type icons, folders |
 
----
+<br/>
 
-## 📁 Project structure
+## 📁 Project Structure
 
 ```
 ServiceFabricBack/
-├── Guids.cs                  # Package and project type GUIDs
-├── ServiceFabricBackPackage.cs    # VS Package — registers the factory
-├── SFProjectFactory.cs       # IVsProjectFactory for .sfproj files
-├── SFProjectHierarchy.cs     # IVsHierarchy — the project tree
-├── SFIcons.cs                # Programmatic icon generation
-├── BuildTargets/
-│   ├── ServiceFabric.props   # MSBuild properties for sfproj
-│   └── ServiceFabric.targets # MSBuild build/package targets
-├── ProjectTemplates/
-│   └── ServiceFabricApplication/  # New project template
-│       ├── Application.sfproj
-│       ├── ApplicationPackageRoot/
-│       ├── ApplicationParameters/
-│       ├── PublishProfiles/
-│       └── Scripts/
-└── source.extension.vsixmanifest
+│
+├── 📄 ServiceFabricBack.sln
+│
+└── ServiceFabricBack/
+    ├── 🔧 Guids.cs                        # Package + project type GUIDs
+    ├── 📦 ServiceFabricBackPackage.cs      # VS Package — registers factory
+    ├── 🏭 SFProjectFactory.cs             # IVsProjectFactory for .sfproj
+    ├── 🌳 SFProjectHierarchy.cs           # IVsHierarchy — project tree
+    ├── 🎨 SFIcons.cs                      # Programmatic icon generation
+    ├── 📋 source.extension.vsixmanifest   # VSIX metadata
+    │
+    ├── BuildTargets/
+    │   ├── ServiceFabric.props            # MSBuild properties
+    │   └── ServiceFabric.targets          # Build/package targets
+    │
+    └── ProjectTemplates/
+        └── ServiceFabricApplication/      # "New Project" template
+            ├── Application.sfproj
+            ├── ApplicationPackageRoot/
+            ├── ApplicationParameters/
+            ├── PublishProfiles/
+            └── Scripts/
 ```
 
----
+<br/>
 
 ## 🤝 Contributing
 
-PRs welcome! Some areas that could use help:
+PRs and issues are welcome! Here's what could use help:
 
-- **Build integration** — wire up the MSBuild targets to actually invoke SF packaging
-- **Deployment** — add a "Publish" context menu command that runs the deploy script
-- **Better icons** — swap GDI+ icons for proper SVG-based `ImageMoniker` support
-- **Property pages** — add project property pages for SF-specific settings
+| Area | Description | Difficulty |
+|:-----|:------------|:----------:|
+| 🔨 Build integration | Wire MSBuild targets to invoke SF packaging | Medium |
+| 🚀 Deployment | "Publish" context menu → runs deploy script | Medium |
+| 🎨 Better icons | SVG-based `ImageMoniker` support | Easy |
+| ⚙️ Property pages | Project settings UI for SF-specific config | Hard |
+| 🧪 Testing | Add integration tests with experimental VS instance | Medium |
 
----
+<br/>
 
 ## 📜 License
 
-[MIT](LICENSE.txt) — do whatever you want with it.
+[MIT](LICENSE.txt) — use it however you want.
+
+<br/>
 
 ---
 
 <div align="center">
 
-*Made because sometimes you have to bring things back from the past* 🦕
+<br/>
+
+```
+        __
+       / _)   rawr — your sfproj files are safe now
+      / /
+ ____/ /
+(____ /
+```
+
+<br/>
+
+**Built with 💜 for everyone still running Service Fabric in production**
+
+*Because not everything needs to be migrated to Kubernetes* 😄
+
+<br/>
 
 </div>
