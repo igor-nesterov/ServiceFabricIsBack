@@ -1,0 +1,33 @@
+<VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Service Fabric Application</Name>
+    <Description>A project for creating a Service Fabric application containing one or more Service Fabric services.</Description>
+    <ProjectType>CSharp</ProjectType>
+    <SortOrder>1000</SortOrder>
+    <CreateNewFolder>true</CreateNewFolder>
+    <DefaultName>Application1</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <LocationField>Enabled</LocationField>
+    <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
+  </TemplateData>
+  <TemplateContent>
+    <Project TargetFileName="$safeprojectname$.sfproj" File="Application.sfproj" ReplaceParameters="true">
+      <Folder Name="ApplicationPackageRoot" TargetFolderName="ApplicationPackageRoot">
+        <ProjectItem ReplaceParameters="true" TargetFileName="ApplicationManifest.xml">ApplicationManifest.xml</ProjectItem>
+      </Folder>
+      <Folder Name="ApplicationParameters" TargetFolderName="ApplicationParameters">
+        <ProjectItem ReplaceParameters="true" TargetFileName="Local.1Node.xml">Local.1Node.xml</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="Local.5Node.xml">Local.5Node.xml</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="Cloud.xml">Cloud.xml</ProjectItem>
+      </Folder>
+      <Folder Name="PublishProfiles" TargetFolderName="PublishProfiles">
+        <ProjectItem ReplaceParameters="true" TargetFileName="Local.1Node.pubxml">Local.1Node.pubxml</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="Local.5Node.pubxml">Local.5Node.pubxml</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="Cloud.pubxml">Cloud.pubxml</ProjectItem>
+      </Folder>
+      <Folder Name="Scripts" TargetFolderName="Scripts">
+        <ProjectItem ReplaceParameters="true" TargetFileName="Deploy-FabricApplication.ps1">Deploy-FabricApplication.ps1</ProjectItem>
+      </Folder>
+    </Project>
+  </TemplateContent>
+</VSTemplate>

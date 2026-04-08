@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\ServiceFabricBack\ServiceFabric.props" Condition="Exists('$(MSBuildExtensionsPath)\ServiceFabricBack\ServiceFabric.props')" />
+  <PropertyGroup>
+    <ProjectGuid>{$guid1$}</ProjectGuid>
+    <ProjectTypeGuids>{A07B5EB6-E848-4116-A8D0-A826331D98C6}</ProjectTypeGuids>
+    <ApplicationPackageRootFolder>ApplicationPackageRoot</ApplicationPackageRootFolder>
+    <ApplicationParametersFolder>ApplicationParameters</ApplicationParametersFolder>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="ApplicationPackageRoot\ApplicationManifest.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ApplicationParameters\Local.1Node.xml" />
+    <None Include="ApplicationParameters\Local.5Node.xml" />
+    <None Include="ApplicationParameters\Cloud.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="PublishProfiles\Local.1Node.pubxml" />
+    <None Include="PublishProfiles\Local.5Node.pubxml" />
+    <None Include="PublishProfiles\Cloud.pubxml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Scripts\Deploy-FabricApplication.ps1" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\ServiceFabricBack\ServiceFabric.targets" Condition="Exists('$(MSBuildExtensionsPath)\ServiceFabricBack\ServiceFabric.targets')" />
+</Project>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSBuild properties for Service Fabric Application projects (.sfproj).
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <!-- Identify this as a Service Fabric project -->
+    <ProjectTypeGuids>{A07B5EB6-E848-4116-A8D0-A826331D98C6}</ProjectTypeGuids>
+    
+    <!-- Service Fabric SDK defaults -->
+    <ServiceFabricSDKVersion Condition="'$(ServiceFabricSDKVersion)' == ''">1.0</ServiceFabricSDKVersion>
+    
+    <!-- Disable standard compile since sfproj is a packaging project -->
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+</Project>
