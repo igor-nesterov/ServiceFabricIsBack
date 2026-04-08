@@ -265,3 +265,7 @@ PRs and issues are welcome! Here's what could use help:
 <br/>
 
 </div>
+
+---
+
+> **Disclaimer:** This project is **not affiliated with, endorsed by, or associated with Microsoft** in any way. It is an independent, community-driven extension. Also, it was fully vibecoded 🤖✨
