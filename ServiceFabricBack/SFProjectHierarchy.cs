@@ -532,19 +532,38 @@ namespace ServiceFabricBack
                 filePath = node.FullPath;
             }
 
+            if (!File.Exists(filePath))
+                return VSConstants.E_FAIL;
+
             var sp = new ServiceProvider(oleServiceProvider);
             var openDoc = sp.GetService(typeof(SVsUIShellOpenDocument)) as IVsUIShellOpenDocument;
             if (openDoc == null) return VSConstants.E_FAIL;
 
             var logicalView = rguidLogicalView;
+            Guid editorType = Guid.Empty;
+            string physicalView = null;
             Microsoft.VisualStudio.OLE.Interop.IServiceProvider ppSP;
-            IVsUIHierarchy ppHierOpen;
-            uint pitemidOpen;
             IVsWindowFrame ppFrame;
-            openDoc.OpenDocumentViaProject(
-                filePath, ref logicalView, out ppSP, out ppHierOpen, out pitemidOpen, out ppFrame);
-            ppWindowFrame = ppFrame;
-            return ppFrame != null ? VSConstants.S_OK : VSConstants.E_FAIL;
+
+            int hr = openDoc.OpenStandardEditor(
+                (uint)__VSOSEFLAGS.OSE_ChooseBestStdEditor,
+                filePath,
+                ref logicalView,
+                Path.GetFileName(filePath),
+                this,
+                itemid,
+                punkDocDataExisting,
+                oleServiceProvider,
+                out ppFrame);
+
+            if (ErrorHandler.Succeeded(hr) && ppFrame != null)
+            {
+                ppWindowFrame = ppFrame;
+                ppFrame.Show();
+                return VSConstants.S_OK;
+            }
+
+            return VSConstants.E_FAIL;
         }
 
         public int GetItemContext(uint itemid, out Microsoft.VisualStudio.OLE.Interop.IServiceProvider ppSP)
