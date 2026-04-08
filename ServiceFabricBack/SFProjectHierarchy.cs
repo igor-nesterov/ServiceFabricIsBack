@@ -914,6 +914,11 @@ namespace ServiceFabricBack
                 filePath = node.FullPath;
             }
 
+            // Don't try to open .sfproj files — they are project files, not editable documents.
+            // Without this guard, VS falls through to the shell "open with" dialog.
+            if (filePath.EndsWith(".sfproj", StringComparison.OrdinalIgnoreCase))
+                return VSConstants.S_OK;
+
             if (!File.Exists(filePath))
             {
                 Trace($"OpenItem file not found: {filePath}");
