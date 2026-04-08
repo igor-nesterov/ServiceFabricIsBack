@@ -36,6 +36,7 @@ namespace ServiceFabricBack
 
         private readonly Dictionary<uint, IVsHierarchyEvents> sinkMap = new Dictionary<uint, IVsHierarchyEvents>();
         private uint nextCookie = 1;
+        private bool _inSelectionCheck;
 
         private readonly List<HierarchyNode> nodes = new List<HierarchyNode>();
         private static readonly string TraceLogPath = Path.Combine(Path.GetTempPath(), "ServiceFabricBack.Hierarchy.log");
@@ -509,6 +510,75 @@ namespace ServiceFabricBack
             return Package.GetGlobalService(serviceType);
         }
 
+        /// <summary>
+        /// Lightweight check: is the current VS selection inside THIS hierarchy?
+        /// Uses a re-entrancy guard so nested QueryStatus/Exec calls cannot cascade.
+        /// Returns false on any failure — safe default that lets VS route elsewhere.
+        /// </summary>
+        private bool IsSelectionInThisHierarchy()
+        {
+            if (_inSelectionCheck)
+                return false;
+
+            _inSelectionCheck = true;
+            try
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
+                var monitorSelection = GetVsService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
+                if (monitorSelection == null)
+                    return false;
+
+                IntPtr hierarchyPtr = IntPtr.Zero;
+                IntPtr selectionContainerPtr = IntPtr.Zero;
+                try
+                {
+                    uint selectedItemId;
+                    IVsMultiItemSelect multiItemSelect;
+                    int hr = monitorSelection.GetCurrentSelection(
+                        out hierarchyPtr, out selectedItemId,
+                        out multiItemSelect, out selectionContainerPtr);
+
+                    if (!ErrorHandler.Succeeded(hr) || hierarchyPtr == IntPtr.Zero)
+                        return false;
+
+                    object selectedObj = Marshal.GetObjectForIUnknown(hierarchyPtr);
+                    return ReferenceEquals(selectedObj, this);
+                }
+                finally
+                {
+                    if (hierarchyPtr != IntPtr.Zero)
+                        Marshal.Release(hierarchyPtr);
+                    if (selectionContainerPtr != IntPtr.Zero)
+                        Marshal.Release(selectionContainerPtr);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                _inSelectionCheck = false;
+            }
+        }
+
+        private void LogActivity(string message, bool isError = false)
+        {
+            try
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                var log = GetVsService(typeof(SVsActivityLog)) as IVsActivityLog;
+                log?.LogEntry(
+                    (uint)(isError
+                        ? __ACTIVITYLOG_ENTRYTYPE.ALE_ERROR
+                        : __ACTIVITYLOG_ENTRYTYPE.ALE_INFORMATION),
+                    "ServiceFabricBack",
+                    message);
+            }
+            catch { }
+        }
+
         private uint ResolveCommandItemId(uint itemid)
         {
             Trace($"ResolveCommandItemId input={itemid}");
@@ -709,6 +779,13 @@ namespace ServiceFabricBack
             OLECMD[] prgCmds, IntPtr pCmdText)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+
+            // Only handle commands when the active selection is inside THIS hierarchy.
+            // Without this guard the extension intercepts commands from unrelated windows
+            // (Extension Manager, Properties, etc.) and steals focus.
+            if (!IsSelectionInThisHierarchy())
+                return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+
             uint itemid = GetCurrentSelectionItemIdOrRoot();
             return QueryStatusCommand(itemid, ref pguidCmdGroup, cCmds, prgCmds, pCmdText);
         }
@@ -717,7 +794,15 @@ namespace ServiceFabricBack
             uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (!IsSelectionInThisHierarchy())
+            {
+                LogActivity($"IOleCommandTarget.Exec skipped — selection not in this hierarchy (group={pguidCmdGroup}, cmd={nCmdID})");
+                return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+            }
+
             uint itemid = GetCurrentSelectionItemIdOrRoot();
+            LogActivity($"IOleCommandTarget.Exec routed item={itemid} group={pguidCmdGroup} cmd={nCmdID}");
             return ExecCommand(itemid, ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
         }
 
