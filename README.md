@@ -33,17 +33,13 @@
 Visual Studio 2026 does not include built-in support for **Service Fabric Application projects (`.sfproj`)**. If you have existing Service Fabric solutions, sfproj projects may show up as ***"(incompatible)"*** and won't load:
 
 ```diff
--  ❌  PublishingApplication (incompatible)
--  ❌  RoutingApplication (incompatible)
--  ❌  CachingApplication (incompatible)
+-  ❌  ContosoApplication (incompatible)
 ```
 
 This extension adds `.sfproj` support back.
 
 ```diff
-+  ✅  PublishingApplication
-+  ✅  RoutingApplication
-+  ✅  CachingApplication
++  ✅  ContosoApplication
 ```
 
 > [!NOTE]
