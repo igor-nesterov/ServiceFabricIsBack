@@ -17,12 +17,10 @@ namespace ServiceFabricBack
     [Guid(Guids.SFProjectTypeGuidString)]
     public class SFProjectFactory : IVsProjectFactory
     {
-        private readonly ServiceFabricBackPackage package;
         private Microsoft.VisualStudio.OLE.Interop.IServiceProvider serviceProviderSite;
 
-        public SFProjectFactory(ServiceFabricBackPackage package)
+        public SFProjectFactory()
         {
-            this.package = package;
         }
 
         public int SetSite(Microsoft.VisualStudio.OLE.Interop.IServiceProvider psp)
@@ -44,7 +42,7 @@ namespace ServiceFabricBack
             ppvProject = IntPtr.Zero;
             pfCanceled = 0;
 
-            var hierarchy = new SFProjectHierarchy(package, pszFilename, serviceProviderSite);
+            var hierarchy = new SFProjectHierarchy(pszFilename, serviceProviderSite);
             ppvProject = Marshal.GetIUnknownForObject(hierarchy);
 
             return VSConstants.S_OK;

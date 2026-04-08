@@ -14,7 +14,7 @@ namespace ServiceFabricBack
     /// back into Visual Studio 2026 after it was removed from the built-in tooling.
     /// </summary>
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
-    [InstalledProductRegistration("Service Fabric Application Support", "Adds back support for Service Fabric Application projects (.sfproj) in Visual Studio 2026.", "1.0")]
+    [InstalledProductRegistration("Service Fabric Application Support", "Adds back support for Service Fabric Application projects (.sfproj) in Visual Studio 2026.", "1.0.6")]
     [Guid(Guids.PackageGuidString)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionOpening_string, PackageAutoLoadFlags.BackgroundLoad)]
     [ProvideProjectFactory(
@@ -34,7 +34,7 @@ namespace ServiceFabricBack
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             // Register the project factory so VS recognizes .sfproj files
-            this.RegisterProjectFactory(new SFProjectFactory(this));
+            this.RegisterProjectFactory(new SFProjectFactory());
         }
 
         #endregion

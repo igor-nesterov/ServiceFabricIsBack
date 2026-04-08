@@ -27,6 +27,20 @@
 [![Service Fabric](https://img.shields.io/badge/Service%20Fabric-.sfproj-blue?style=for-the-badge)](https://learn.microsoft.com/azure/service-fabric/)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE.txt)
 
+### 🛡️ Status
+
+```text
+      __
+  /_)    / _\  rawr - your sfproj files are safe now
+ / /    / /
+/ /_   / /_
+\__/   \__/
+```
+
+**Built with 💜 for everyone still running Service Fabric in production**
+
+*Because not everything needs to be migrated to Kubernetes 😄*
+
 </div>
 
 ---
@@ -91,6 +105,36 @@ Start-Process "ServiceFabricBack\bin\Debug\ServiceFabricBack.vsix"
 Go to **Extensions → Manage Extensions** and look for:
 
 > **Service Fabric Project Support** — *Igor Nesterov*
+
+### Optional diagnostics tracing
+
+Tracing is now **disabled by default**.
+
+Enable it only when troubleshooting:
+
+```powershell
+# Enable tracing for this shell session
+$env:SERVICEFABRICBACK_TRACE = "1"
+
+# Optional: custom log file path
+$env:SERVICEFABRICBACK_TRACE_PATH = "$env:TEMP\ServiceFabricBack.Hierarchy.log"
+
+# Launch Visual Studio from the same shell
+Start-Process devenv.exe
+```
+
+Read recent entries:
+
+```powershell
+Get-Content "$env:TEMP\ServiceFabricBack.Hierarchy.log" -Tail 120
+```
+
+Disable tracing:
+
+```powershell
+Remove-Item Env:SERVICEFABRICBACK_TRACE -ErrorAction SilentlyContinue
+Remove-Item Env:SERVICEFABRICBACK_TRACE_PATH -ErrorAction SilentlyContinue
+```
 
 ---
 
