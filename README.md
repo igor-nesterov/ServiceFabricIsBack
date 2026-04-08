@@ -244,28 +244,7 @@ PRs and issues are welcome! Here's what could use help:
 
 ---
 
-<div align="center">
-
-<br/>
-
+```diff
+- Disclaimer: This project is NOT affiliated with, endorsed by, or associated with Microsoft
+- in any way. It is an independent, community-driven extension. Also, it was fully vibecoded by Copilot 🤖✨
 ```
-        __
-       / _)   rawr — your sfproj files are safe now
-      / /
- ____/ /
-(____ /
-```
-
-<br/>
-
-**Built with 💜 for everyone still running Service Fabric in production**
-
-*Because not everything needs to be migrated to Kubernetes* 😄
-
-<br/>
-
-</div>
-
----
-
-> **Disclaimer:** This project is **not affiliated with, endorsed by, or associated with Microsoft** in any way. It is an independent, community-driven extension. Also, it was fully vibecoded 🤖✨
