@@ -208,6 +208,16 @@ ServiceFabricBack/
 
 <br/>
 
+## ⚙️ Configuration
+
+| Environment Variable | Values | Default | Description |
+|:---------------------|:-------|:--------|:------------|
+| `SERVICEFABRICBACK_TRACE` | `1` / `true` / `on` | *(not set)* | Enables detailed hierarchy tracing to `%TEMP%\ServiceFabricBack.Hierarchy.log` — useful for bug reports |
+
+Set these as **User** or **System** environment variables, then restart Visual Studio.
+
+<br/>
+
 ## 🤝 Contributing
 
 PRs and issues are welcome! Here's what could use help:

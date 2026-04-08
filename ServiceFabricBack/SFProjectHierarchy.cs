@@ -40,8 +40,10 @@ namespace ServiceFabricBack
 
         private readonly List<HierarchyNode> nodes = new List<HierarchyNode>();
         private static readonly string TraceLogPath = Path.Combine(Path.GetTempPath(), "ServiceFabricBack.Hierarchy.log");
+        private static readonly bool TraceEnabled = IsTraceEnabled();
         private const uint TraceObservedOpenCmd97 = 684;
         private const uint TraceObservedOpenCmd2K = 1990;
+        private IVsMonitorSelection _cachedMonitorSelection;
 
         // MSBuild item types that represent actual files
         private static readonly HashSet<string> FileItemTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -61,8 +63,17 @@ namespace ServiceFabricBack
             public uint ParentId;
         }
 
+        private static bool IsTraceEnabled()
+        {
+            var val = Environment.GetEnvironmentVariable("SERVICEFABRICBACK_TRACE");
+            return string.Equals(val, "1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(val, "true", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(val, "on", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void Trace(string message)
         {
+            if (!TraceEnabled) return;
             try
             {
                 File.AppendAllText(
@@ -510,13 +521,26 @@ namespace ServiceFabricBack
             return Package.GetGlobalService(serviceType);
         }
 
-        /// <summary>
-        /// Lightweight check: is the current VS selection inside THIS hierarchy?
-        /// Uses a re-entrancy guard so nested QueryStatus/Exec calls cannot cascade.
-        /// Returns false on any failure — safe default that lets VS route elsewhere.
-        /// </summary>
-        private bool IsSelectionInThisHierarchy()
+        private IVsMonitorSelection GetMonitorSelection()
         {
+            if (_cachedMonitorSelection != null)
+                return _cachedMonitorSelection;
+
+            ThreadHelper.ThrowIfNotOnUIThread();
+            _cachedMonitorSelection = GetVsService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
+            return _cachedMonitorSelection;
+        }
+
+        /// <summary>
+        /// Combined ownership + item-id resolution in a single GetCurrentSelection call.
+        /// Returns false if selection is not in this hierarchy (safe default).
+        /// When true, resolvedItemId contains the concrete item id for command routing.
+        /// Re-entrancy guard prevents nested QueryStatus/Exec cascades.
+        /// </summary>
+        private bool TryGetOwnedSelection(out uint resolvedItemId)
+        {
+            resolvedItemId = VSItemIdRoot;
+
             if (_inSelectionCheck)
                 return false;
 
@@ -525,7 +549,7 @@ namespace ServiceFabricBack
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
 
-                var monitorSelection = GetVsService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
+                var monitorSelection = GetMonitorSelection();
                 if (monitorSelection == null)
                     return false;
 
@@ -542,8 +566,44 @@ namespace ServiceFabricBack
                     if (!ErrorHandler.Succeeded(hr) || hierarchyPtr == IntPtr.Zero)
                         return false;
 
+                    // Ownership check: is this OUR hierarchy?
                     object selectedObj = Marshal.GetObjectForIUnknown(hierarchyPtr);
-                    return ReferenceEquals(selectedObj, this);
+                    if (!ReferenceEquals(selectedObj, this))
+                        return false;
+
+                    // Resolve the item id from the selection
+                    if (selectedItemId != VSItemIdNil &&
+                        selectedItemId != unchecked((uint)VSConstants.VSITEMID_SELECTION))
+                    {
+                        resolvedItemId = selectedItemId;
+                        return true;
+                    }
+
+                    // Multi-select with single item
+                    if (selectedItemId == unchecked((uint)VSConstants.VSITEMID_SELECTION) && multiItemSelect != null)
+                    {
+                        uint itemCount;
+                        int isSingleHierarchy;
+                        if (ErrorHandler.Succeeded(multiItemSelect.GetSelectionInfo(out itemCount, out isSingleHierarchy)) &&
+                            itemCount == 1)
+                        {
+                            var selection = new VSITEMSELECTION[1];
+                            if (ErrorHandler.Succeeded(multiItemSelect.GetSelectedItems(0, 1, selection)))
+                            {
+                                uint selItemId = selection[0].itemid;
+                                if (selItemId != VSItemIdNil &&
+                                    selItemId != unchecked((uint)VSConstants.VSITEMID_SELECTION))
+                                {
+                                    resolvedItemId = selItemId;
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    // Owned but couldn't resolve specific item — fall back to root
+                    resolvedItemId = VSItemIdRoot;
+                    return true;
                 }
                 finally
                 {
@@ -780,13 +840,12 @@ namespace ServiceFabricBack
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            // Only handle commands when the active selection is inside THIS hierarchy.
-            // Without this guard the extension intercepts commands from unrelated windows
-            // (Extension Manager, Properties, etc.) and steals focus.
-            if (!IsSelectionInThisHierarchy())
+            // Single call: ownership check + item-id resolution.
+            // Returns NOTSUPPORTED for commands from unrelated windows.
+            uint itemid;
+            if (!TryGetOwnedSelection(out itemid))
                 return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
 
-            uint itemid = GetCurrentSelectionItemIdOrRoot();
             return QueryStatusCommand(itemid, ref pguidCmdGroup, cCmds, prgCmds, pCmdText);
         }
 
@@ -795,14 +854,10 @@ namespace ServiceFabricBack
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            if (!IsSelectionInThisHierarchy())
-            {
-                LogActivity($"IOleCommandTarget.Exec skipped — selection not in this hierarchy (group={pguidCmdGroup}, cmd={nCmdID})");
+            uint itemid;
+            if (!TryGetOwnedSelection(out itemid))
                 return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
-            }
 
-            uint itemid = GetCurrentSelectionItemIdOrRoot();
-            LogActivity($"IOleCommandTarget.Exec routed item={itemid} group={pguidCmdGroup} cmd={nCmdID}");
             return ExecCommand(itemid, ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
         }
 
