@@ -24,7 +24,8 @@ namespace ServiceFabricBack
         IVsHierarchy,
         IPersistFileFormat,
         IVsGetCfgProvider,
-        IVsCfgProvider2
+        IVsCfgProvider2,
+        IOleCommandTarget
     {
         private readonly ServiceFabricBackPackage package;
         private readonly string projectFile;
@@ -37,6 +38,9 @@ namespace ServiceFabricBack
         private uint nextCookie = 1;
 
         private readonly List<HierarchyNode> nodes = new List<HierarchyNode>();
+        private static readonly string TraceLogPath = Path.Combine(Path.GetTempPath(), "ServiceFabricBack.Hierarchy.log");
+        private const uint TraceObservedOpenCmd97 = 684;
+        private const uint TraceObservedOpenCmd2K = 1990;
 
         // MSBuild item types that represent actual files
         private static readonly HashSet<string> FileItemTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -56,13 +60,26 @@ namespace ServiceFabricBack
             public uint ParentId;
         }
 
+        private static void Trace(string message)
+        {
+            try
+            {
+                File.AppendAllText(
+                    TraceLogPath,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
+            }
+            catch
+            {
+            }
+        }
+
         public SFProjectHierarchy(ServiceFabricBackPackage package, string projectFile,
             Microsoft.VisualStudio.OLE.Interop.IServiceProvider oleServiceProvider)
         {
             this.package = package;
-            this.projectFile = projectFile;
-            this.projectDir = Path.GetDirectoryName(projectFile);
-            this.projectName = Path.GetFileNameWithoutExtension(projectFile);
+            this.projectFile = Path.GetFullPath(projectFile);
+            this.projectDir = Path.GetDirectoryName(this.projectFile);
+            this.projectName = Path.GetFileNameWithoutExtension(this.projectFile);
             this.oleServiceProvider = oleServiceProvider;
             this.projectInstanceGuid = Guid.Empty;
 
@@ -131,7 +148,7 @@ namespace ServiceFabricBack
                     {
                         ItemId = id,
                         RelativePath = folder,
-                        FullPath = Path.Combine(projectDir, folder),
+                        FullPath = Path.GetFullPath(Path.Combine(projectDir, folder)),
                         DisplayName = Path.GetFileName(folder),
                         IsFolder = true,
                         IsProjectReference = false,
@@ -157,7 +174,7 @@ namespace ServiceFabricBack
                     {
                         ItemId = id,
                         RelativePath = item,
-                        FullPath = Path.Combine(projectDir, item),
+                        FullPath = Path.GetFullPath(Path.Combine(projectDir, item)),
                         DisplayName = Path.GetFileName(item),
                         IsFolder = false,
                         IsProjectReference = false,
@@ -286,7 +303,7 @@ namespace ServiceFabricBack
                     return VSConstants.S_OK;
 
                 case (int)__VSHPROPID.VSHPROPID_SaveName:
-                    pvar = Path.GetFileName(projectFile);
+                    pvar = projectFile;
                     return VSConstants.S_OK;
 
                 case (int)__VSHPROPID.VSHPROPID_ParentHierarchy:
@@ -384,7 +401,7 @@ namespace ServiceFabricBack
                     return VSConstants.S_OK;
 
                 case (int)__VSHPROPID.VSHPROPID_SaveName:
-                    pvar = node.RelativePath;
+                    pvar = node.FullPath;
                     return VSConstants.S_OK;
 
                 case (int)__VSHPROPID.VSHPROPID_IconIndex:
@@ -475,14 +492,131 @@ namespace ServiceFabricBack
 
         #region IVsUIHierarchy
 
+        private object GetVsService(Type serviceType)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (oleServiceProvider != null)
+            {
+                using (var serviceProvider = new ServiceProvider(oleServiceProvider))
+                {
+                    var service = serviceProvider.GetService(serviceType);
+                    if (service != null)
+                        return service;
+                }
+            }
+
+            return Package.GetGlobalService(serviceType);
+        }
+
+        private uint ResolveCommandItemId(uint itemid)
+        {
+            Trace($"ResolveCommandItemId input={itemid}");
+
+            if (itemid != unchecked((uint)VSConstants.VSITEMID_SELECTION))
+                return itemid;
+
+            try
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
+                var monitorSelection = GetVsService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
+
+                if (monitorSelection == null)
+                    return itemid;
+
+                IntPtr hierarchyPtr = IntPtr.Zero;
+                IntPtr selectionContainerPtr = IntPtr.Zero;
+                try
+                {
+                    uint selectedItemId;
+                    IVsMultiItemSelect multiItemSelect;
+                    int hr = monitorSelection.GetCurrentSelection(
+                        out hierarchyPtr,
+                        out selectedItemId,
+                        out multiItemSelect,
+                        out selectionContainerPtr);
+
+                    if (!ErrorHandler.Succeeded(hr))
+                    {
+                        Trace($"ResolveCommandItemId GetCurrentSelection failed hr=0x{hr:X8}");
+                        return itemid;
+                    }
+
+                    if (selectedItemId != VSItemIdNil &&
+                        selectedItemId != unchecked((uint)VSConstants.VSITEMID_SELECTION))
+                    {
+                        Trace($"ResolveCommandItemId selectedItemId={selectedItemId}");
+                        return selectedItemId;
+                    }
+
+                    if (selectedItemId == unchecked((uint)VSConstants.VSITEMID_SELECTION) && multiItemSelect != null)
+                    {
+                        uint itemCount;
+                        int isSingleHierarchy;
+                        if (ErrorHandler.Succeeded(multiItemSelect.GetSelectionInfo(out itemCount, out isSingleHierarchy)) &&
+                            itemCount == 1)
+                        {
+                            var selection = new VSITEMSELECTION[1];
+                            if (ErrorHandler.Succeeded(multiItemSelect.GetSelectedItems(0, 1, selection)))
+                            {
+                                uint selectionItemId = selection[0].itemid;
+                                if (selectionItemId != VSItemIdNil &&
+                                    selectionItemId != unchecked((uint)VSConstants.VSITEMID_SELECTION))
+                                {
+                                    Trace($"ResolveCommandItemId multiSelectItemId={selectionItemId}");
+                                    return selectionItemId;
+                                }
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    if (hierarchyPtr != IntPtr.Zero)
+                        Marshal.Release(hierarchyPtr);
+                    if (selectionContainerPtr != IntPtr.Zero)
+                        Marshal.Release(selectionContainerPtr);
+                }
+            }
+            catch
+            {
+                Trace("ResolveCommandItemId exception");
+            }
+
+            Trace("ResolveCommandItemId unresolved");
+            return itemid;
+        }
+
+        private uint GetCurrentSelectionItemIdOrRoot()
+        {
+            var selected = ResolveCommandItemId(unchecked((uint)VSConstants.VSITEMID_SELECTION));
+            if (selected == unchecked((uint)VSConstants.VSITEMID_SELECTION) || selected == VSItemIdNil)
+                return VSItemIdRoot;
+
+            return selected;
+        }
+
         public int QueryStatusCommand(uint itemid, ref Guid pguidCmdGroup, uint cCmds,
             OLECMD[] prgCmds, IntPtr pCmdText)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            itemid = ResolveCommandItemId(itemid);
+            Trace($"QueryStatusCommand item={itemid} group={pguidCmdGroup} cCmds={cCmds}");
+
             if (prgCmds == null || cCmds == 0)
                 return VSConstants.E_INVALIDARG;
 
-            // Standard command group — handle Open, DoubleClick, ViewCode
-            if (pguidCmdGroup == VSConstants.GUID_VSStandardCommandSet97)
+            bool isFile = false;
+            if (itemid == VSItemIdRoot)
+                isFile = true;
+            else
+            {
+                var n = FindNode(itemid);
+                isFile = n != null && !n.IsFolder;
+            }
+
+            if (isFile && pguidCmdGroup == VSConstants.GUID_VSStandardCommandSet97)
             {
                 for (int i = 0; i < cCmds; i++)
                 {
@@ -492,17 +626,14 @@ namespace ServiceFabricBack
                         case (uint)VSConstants.VSStd97CmdID.OpenWith:
                         case (uint)VSConstants.VSStd97CmdID.ViewCode:
                         case (uint)VSConstants.VSStd97CmdID.ViewForm:
-                            var node97 = FindNode(itemid);
-                            if (itemid == VSItemIdRoot || (node97 != null && !node97.IsFolder))
-                            {
-                                prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
-                                return VSConstants.S_OK;
-                            }
-                            break;
+                        case TraceObservedOpenCmd97:
+                            prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+                            return VSConstants.S_OK;
                     }
                 }
             }
-            else if (pguidCmdGroup == VSConstants.VSStd2K)
+
+            if (isFile && pguidCmdGroup == VSConstants.VSStd2K)
             {
                 for (int i = 0; i < cCmds; i++)
                 {
@@ -510,22 +641,9 @@ namespace ServiceFabricBack
                     {
                         case (uint)VSConstants.VSStd2KCmdID.DOUBLECLICK:
                         case (uint)VSConstants.VSStd2KCmdID.OPENFILE:
-                            var node2k = FindNode(itemid);
-                            if (itemid == VSItemIdRoot || (node2k != null && !node2k.IsFolder))
-                            {
-                                prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
-                                return VSConstants.S_OK;
-                            }
-                            break;
-
-                        case (uint)VSConstants.VSStd2KCmdID.EXPANDSELECTION:
-                            var nodeExp = FindNode(itemid);
-                            if (itemid == VSItemIdRoot || (nodeExp != null && nodeExp.IsFolder))
-                            {
-                                prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
-                                return VSConstants.S_OK;
-                            }
-                            break;
+                        case TraceObservedOpenCmd2K:
+                            prgCmds[i].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+                            return VSConstants.S_OK;
                     }
                 }
             }
@@ -536,7 +654,12 @@ namespace ServiceFabricBack
         public int ExecCommand(uint itemid, ref Guid pguidCmdGroup, uint nCmdID,
             uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
         {
-            // Handle Open / DoubleClick
+            ThreadHelper.ThrowIfNotOnUIThread();
+            itemid = ResolveCommandItemId(itemid);
+            Trace($"ExecCommand item={itemid} group={pguidCmdGroup} cmd={nCmdID}");
+
+            bool isOpenCmd = false;
+
             if (pguidCmdGroup == VSConstants.GUID_VSStandardCommandSet97)
             {
                 switch (nCmdID)
@@ -545,9 +668,9 @@ namespace ServiceFabricBack
                     case (uint)VSConstants.VSStd97CmdID.OpenWith:
                     case (uint)VSConstants.VSStd97CmdID.ViewCode:
                     case (uint)VSConstants.VSStd97CmdID.ViewForm:
-                        Guid logView = VSConstants.LOGVIEWID_Primary;
-                        IVsWindowFrame frame;
-                        return OpenItem(itemid, ref logView, IntPtr.Zero, out frame);
+                    case TraceObservedOpenCmd97:
+                        isOpenCmd = true;
+                        break;
                 }
             }
             else if (pguidCmdGroup == VSConstants.VSStd2K)
@@ -556,18 +679,46 @@ namespace ServiceFabricBack
                 {
                     case (uint)VSConstants.VSStd2KCmdID.DOUBLECLICK:
                     case (uint)VSConstants.VSStd2KCmdID.OPENFILE:
-                        // For folders, toggle expand — for files, open
-                        var node = FindNode(itemid);
-                        if (node != null && node.IsFolder)
-                            return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
-
-                        Guid logView2k = VSConstants.LOGVIEWID_Primary;
-                        IVsWindowFrame frame2k;
-                        return OpenItem(itemid, ref logView2k, IntPtr.Zero, out frame2k);
+                    case TraceObservedOpenCmd2K:
+                        isOpenCmd = true;
+                        break;
                 }
             }
 
+            if (isOpenCmd)
+            {
+                // For folders, let VS handle expand/collapse
+                var node = FindNode(itemid);
+                if (node != null && node.IsFolder)
+                {
+                    Trace($"ExecCommand open blocked for folder item={itemid}");
+                    return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+                }
+
+                Guid logView = VSConstants.LOGVIEWID_Primary;
+                IVsWindowFrame frame;
+                int hrOpen = OpenItem(itemid, ref logView, IntPtr.Zero, out frame);
+                Trace($"ExecCommand open result hr=0x{hrOpen:X8} item={itemid}");
+                return hrOpen;
+            }
+
             return (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+        }
+
+        int IOleCommandTarget.QueryStatus(ref Guid pguidCmdGroup, uint cCmds,
+            OLECMD[] prgCmds, IntPtr pCmdText)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            uint itemid = GetCurrentSelectionItemIdOrRoot();
+            return QueryStatusCommand(itemid, ref pguidCmdGroup, cCmds, prgCmds, pCmdText);
+        }
+
+        int IOleCommandTarget.Exec(ref Guid pguidCmdGroup, uint nCmdID,
+            uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            uint itemid = GetCurrentSelectionItemIdOrRoot();
+            return ExecCommand(itemid, ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
         }
 
         #endregion
@@ -608,7 +759,11 @@ namespace ServiceFabricBack
         public int OpenItem(uint itemid, ref Guid rguidLogicalView, IntPtr punkDocDataExisting,
             out IVsWindowFrame ppWindowFrame)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             ppWindowFrame = null;
+            itemid = ResolveCommandItemId(itemid);
+            Trace($"OpenItem item={itemid} logicalView={rguidLogicalView}");
+
             string filePath;
             if (itemid == VSItemIdRoot)
                 filePath = projectFile;
@@ -620,35 +775,86 @@ namespace ServiceFabricBack
             }
 
             if (!File.Exists(filePath))
+            {
+                Trace($"OpenItem file not found: {filePath}");
                 return VSConstants.E_FAIL;
+            }
+
+            Trace($"OpenItem file path: {filePath}");
 
             try
             {
-                VsShellUtilities.OpenDocument(
-                    package,
-                    filePath,
-                    rguidLogicalView,
-                    out _,        // hierarchy
-                    out _,        // itemid
-                    out ppWindowFrame);
+                ThreadHelper.ThrowIfNotOnUIThread();
 
-                if (ppWindowFrame != null)
+                var openDoc = GetVsService(typeof(SVsUIShellOpenDocument)) as IVsUIShellOpenDocument;
+                if (openDoc != null)
                 {
-                    ppWindowFrame.Show();
+                    var logicalView = rguidLogicalView == Guid.Empty
+                        ? VSConstants.LOGVIEWID_Primary
+                        : rguidLogicalView;
+
+                    IVsWindowFrame frame;
+                    int hr = openDoc.OpenStandardEditor(
+                        (uint)__VSOSEFLAGS.OSE_ChooseBestStdEditor,
+                        filePath,
+                        ref logicalView,
+                        Path.GetFileName(filePath),
+                        this,
+                        itemid,
+                        punkDocDataExisting,
+                        oleServiceProvider,
+                        out frame);
+
+                    if (ErrorHandler.Succeeded(hr) && frame != null)
+                    {
+                        ppWindowFrame = frame;
+                        frame.Show();
+                        Trace($"OpenItem OpenStandardEditor success hr=0x{hr:X8}");
+                        return VSConstants.S_OK;
+                    }
+
+                    Trace($"OpenItem OpenStandardEditor failed hr=0x{hr:X8}");
+                }
+            }
+            catch
+            {
+                Trace("OpenItem OpenStandardEditor exception");
+            }
+
+            // Use EnvDTE — the most reliable way to open a file in VS.
+            // This is exactly the same code path as File → Open → File.
+            try
+            {
+                var dte = GetVsService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+                if (dte != null)
+                {
+                    dte.ItemOperations.OpenFile(filePath, EnvDTE.Constants.vsViewKindTextView);
+                    Trace("OpenItem DTE open success");
                     return VSConstants.S_OK;
                 }
             }
             catch
             {
-                // Fall back to ShellExecute if VS editor fails
-                try
-                {
-                    System.Diagnostics.Process.Start(filePath);
-                    return VSConstants.S_OK;
-                }
-                catch { }
+                Trace("OpenItem DTE open exception");
             }
 
+            // Fallback: open with default system editor
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true
+                });
+                Trace("OpenItem shell open success");
+                return VSConstants.S_OK;
+            }
+            catch
+            {
+                Trace("OpenItem shell open exception");
+            }
+
+            Trace("OpenItem failed");
             return VSConstants.E_FAIL;
         }
 

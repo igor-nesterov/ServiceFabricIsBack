@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="ServiceFabricBack.b5c1ddc1-d3dd-492a-bed4-d5e7f44075bd" Version="1.0" Language="en-US" Publisher="Igor Nesterov" />
+    <Identity Id="ServiceFabricBack.b5c1ddc1-d3dd-492a-bed4-d5e7f44075bd" Version="1.0.5" Language="en-US" Publisher="Igor Nesterov" />
     <DisplayName>Service Fabric Project Support</DisplayName>
     <Description>Adds back support for Service Fabric Application projects (.sfproj) in Visual Studio 2026. Enables opening, building, and managing .sfproj files that were removed from the built-in tooling.</Description>
     <Tags>Service Fabric, sfproj, Azure, Microservices</Tags>
